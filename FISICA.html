@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>App Matemática y Física Gamificada</title>
+<style>
+body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; margin: 0; padding: 0; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; }
+.container { display: flex; flex-direction: column; align-items: center; gap: 20px; width: 450px; padding: 20px; }
+h2 { text-align:center; color:#3a3a3a; margin-bottom:20px; }
+.mode-buttons { display:flex; justify-content:center; gap:10px; margin-bottom:20px; flex-wrap: wrap; }
+.mode-buttons button { padding: 15px 25px; border:none; border-radius: 25px; background: linear-gradient(145deg, #a8dadc, #90c7d1); color:#2c3e50; cursor:pointer; transition:0.3s; font-size: 1.1em; box-shadow: 3px 3px 8px rgba(0,0,0,0.1), -3px -3px 8px rgba(255,255,255,0.7); }
+.mode-buttons button:hover { background: linear-gradient(145deg, #90c7d1, #78b0b8); }
+.panel { background:#ffffff; border-radius:15px; box-shadow:0 8px 25px rgba(0,0,0,0.1); padding:20px; width:100%; display:none; }
+.calculator-grid { display:grid; grid-template-columns: repeat(4,1fr); gap:10px; }
+.calculator-grid button { padding: 22px; font-size:1.4em; border:none; border-radius: 20px; background: linear-gradient(145deg, #ffe066, #ffd633); color:#2c3e50; cursor:pointer; transition:0.3s; box-shadow: 3px 3px 6px rgba(0,0,0,0.1), -3px -3px 6px rgba(255,255,255,0.7); }
+.calculator-grid button:hover { transform:translateY(-2px); }
+#display { grid-column: span 4; padding:10px; font-size:1.4em; border-radius:10px; border:none; text-align:right; background:#f7f9fa; color:#2c3e50; }
+.btn-clear { grid-column: span 4; background: linear-gradient(145deg, #ffadad, #ff9494); border-radius: 20px; font-size:1.2em; }
+.btn-clear:hover { transform:translateY(-2px); }
+.generator select, .generator button { padding:12px; border-radius: 20px; border:none; cursor:pointer; transition:0.3s; margin-bottom:10px; width:48%; font-size: 1.1em; box-shadow: 3px 3px 6px rgba(0,0,0,0.08), -3px -3px 6px rgba(255,255,255,0.7); }
+.generate { background: linear-gradient(145deg, #a8dadc, #90c7d1); color:#2c3e50; width:100%; margin-bottom:10px; }
+.generate:hover { background: linear-gradient(145deg, #78b0b8, #5da0a9); }
+.show-result { background: linear-gradient(145deg, #ffe066, #ffd633); color:#2c3e50; width:100%; margin-bottom:10px; }
+.show-result:hover { background: linear-gradient(145deg, #ffd633, #ffbf33); }
+.save-btn, .load-btn { background: linear-gradient(145deg, #cdb4db, #b89ccc); color:#2c3e50; width:48%; margin-bottom:10px; }
+.save-btn:hover, .load-btn:hover { background: linear-gradient(145deg, #b89ccc, #a67bb5); }
+.problem, .solution { text-align:center; font-size:1.2em; margin:5px 0; transition:0.3s; }
+.history { margin-top:10px; font-size:0.9em; max-height:120px; overflow-y:auto; background:#f1f3f6; padding:10px; border-radius:8px; }
+canvas { background:#f7f9fa; border-radius:8px; display:block; margin:10px auto; }
+.points, .level, .daily { text-align:center; font-size:1.1em; margin-bottom:5px; }
+</style>
+</head>
+<body>
+
+<div class="container">
+<h2>App Matemática y Física Gamificada</h2>
+<div class="mode-buttons">
+<button onclick="switchMode('calculator')">Calculadora</button>
+<button onclick="switchMode('generator')">Generador</button>
+</div>
+
+<div class="panel" id="calculator-panel">
+  <div class="calculator-grid">
+    <input type="text" id="display" disabled>
+    <button onclick="press('7')">7</button>
+    <button onclick="press('8')">8</button>
+    <button onclick="press('9')">9</button>
+    <button onclick="press('/')">/</button>
+    <button onclick="press('4')">4</button>
+    <button onclick="press('5')">5</button>
+    <button onclick="press('6')">6</button>
+    <button onclick="press('*')">*</button>
+    <button onclick="press('1')">1</button>
+    <button onclick="press('2')">2</button>
+    <button onclick="press('3')">3</button>
+    <button onclick="press('-')">-</button>
+    <button onclick="press('0')">0</button>
+    <button onclick="press('.')">.</button>
+    <button onclick="calculate()">=</button>
+    <button onclick="press('+')">+</button>
+    <button class="btn-clear" onclick="clearDisplay()">C</button>
+  </div>
+</div>
+
+<div class="panel" id="generator-panel">
+  <div class="points" id="points">Puntos: 0</div>
+  <div class="level" id="level">Nivel: 1</div>
+  <div class="daily" id="daily">Reto diario: 50 puntos</div>
+
+  <div style="display:flex; justify-content:space-between; flex-wrap: wrap;">
+    <select id="difficulty">
+      <option value="easy">Fácil</option>
+      <option value="medium">Medio</option>
+      <option value="hard">Difícil</option>
+    </select>
+    <select id="type">
+      <option value="arithmetic">Aritmética</option>
+      <option value="algebra">Álgebra</option>
+      <option value="geometry">Geometría</option>
+      <option value="trigonometry">Trigonometría</option>
+      <option value="basic">Cálculo Básico</option>
+      <option value="combined">Cálculos Combinados</option>
+      <option value="kinematics">Cinemática y Dinámica</option>
+      <option value="energy">Energía, Trabajo y Potencia</option>
+      <option value="circular">Movimiento Circular y Rotacional</option>
+      <option value="thermo">Termodinámica Básica</option>
+      <option value="electric">Electricidad y Magnetismo Básico</option>
+      <option value="optics">Óptica Básica</option>
+    </select>
+  </div>
+
+  <div class="problem" id="problem">Haz clic en "Generar Problema"</div>
+  <canvas id="canvas" width="400" height="150"></canvas>
+  <div class="solution" id="solution" style="display:none;"></div>
+
+  <button class="generate" onclick="generateProblem()">Generar Problema</button>
+  <button class="show-result" onclick="showSolution()">Mostrar Resultado</button>
+
+  <div style="display:flex; justify-content:space-between;">
+    <button class="save-btn" onclick="saveProgress()">Guardar</button>
+    <button class="load-btn" onclick="loadProgress()">Cargar</button>
+  </div>
+
+  <div class="history" id="history"></div>
+</div>
+</div>
+
+<script>
+const display = document.getElementById('display');
+function press(val){ display.value += val; }
+function clearDisplay(){ display.value=''; }
+function calculate(){ try{ display.value = eval(display.value); } catch{ display.value='Error'; } }
+
+const problemEl = document.getElementById('problem');
+const solutionEl = document.getElementById('solution');
+const historyEl = document.getElementById('history');
+const pointsEl = document.getElementById('points');
+const levelEl = document.getElementById('level');
+const dailyEl = document.getElementById('daily');
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+let currentSolution = '';
+let points = 0;
+let level = 1;
+let dailyGoal = 50;
+
+function generateProblem(){
+  const difficulty = document.getElementById('difficulty').value;
+  const type = document.getElementById('type').value;
+  let problem='', solution='';
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  let max = difficulty==='easy'?10:difficulty==='medium'?50:100;
+  const a=Math.floor(Math.random()*max+1);
+  const b=Math.floor(Math.random()*max+1);
+
+  if(type==='arithmetic'){
+    const ops=['+','-','*','/'];
+    const op = ops[Math.floor(Math.random()*ops.length)];
+    problem=`${a} ${op} ${b}`;
+    switch(op){
+      case '+': solution=`${a} + ${b} = ${a+b}`; break;
+      case '-': solution=`${a} - ${b} = ${a-b}`; break;
+      case '*': solution=`${a} × ${b} = ${a*b}`; break;
+      case '/': solution=`${a} ÷ ${b} = ${(a/b).toFixed(2)}`; break;
+    }
+  } else if(type==='algebra'){
+    const x = Math.floor(Math.random()*10+1);
+    const c = a*x+b;
+    problem=`${a}x + ${b} = ${c}`;
+    solution=`x = ${x}`;
+  } else if(type==='geometry'){
+    const shapes=['rect','circle','triangle'];
+    const shape = shapes[Math.floor(Math.random()*shapes.length)];
+    if(shape==='rect'){
+      problem=`Rectángulo: ancho=${a}, alto=${b}. Calcula área.`;
+      solution=`Área = ${a} × ${b} = ${a*b}`;
+      ctx.fillStyle='#a8dadc';
+      ctx.fillRect(20,20,a*2,b*2);
+      ctx.strokeRect(20,20,a*2,b*2);
+    } else if(shape==='circle'){
+      problem=`Círculo: radio=${a}. Calcula área.`;
+      solution=`Área = π × ${a}² ≈ ${(Math.PI*a*a).toFixed(2)}`;
+      ctx.fillStyle='#ffe066';
+      ctx.beginPath();
+      ctx.arc(100,75,a,0,Math.PI*2);
+      ctx.fill(); ctx.stroke();
+    } else {
+      problem=`Triángulo: base=${a}, altura=${b}. Calcula área.`;
+      solution=`Área = ${a} × ${b} ÷ 2 = ${(a*b/2).toFixed(2)}`;
+      ctx.fillStyle='#cdb4db';
+      ctx.beginPath();
+      ctx.moveTo(50,20);
+      ctx.lineTo(50+a*2,20);
+      ctx.lineTo(50,20+b*2);
+      ctx.closePath();
+      ctx.fill(); ctx.stroke();
+    }
+  } else if(type==='trigonometry'){
+    const angle = Math.floor(Math.random()*80)+10; 
+    const rad = angle*Math.PI/180;
+    const hypotenuse = 100;
+    const opposite = Math.round(hypotenuse*Math.sin(rad));
+    const adjacent = Math.round(hypotenuse*Math.cos(rad));
+    problem=`Calcula seno, coseno y tangente de ${angle}°`;
+    solution=`sin(${angle}°) ≈ ${Math.sin(rad).toFixed(2)}, cos(${angle}°) ≈ ${Math.cos(rad).toFixed(2)}, tan(${angle}°) ≈ ${Math.tan(rad).toFixed(2)}`;
+    ctx.fillStyle='#a8dadc';
+    ctx.beginPath();
+    ctx.moveTo(50,130);
+    ctx.lineTo(50 + adjacent, 130);
+    ctx.lineTo(50, 130 - opposite);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle='#2c3e50';
+    ctx.lineWidth=2;
+    ctx.stroke();
+    ctx.fillStyle='#ff6b6b';
+    ctx.font='14px Arial';
+    ctx.fillText(`${angle}°`, 55, 125);
+    ctx.fillStyle='#2c3e50';
+    ctx.font='12px Arial';
+    ctx.fillText(`Opuesto: ${opposite}`, 10, 60);
+    ctx.fillText(`Adyacente: ${adjacent}`, 50 + adjacent/2 - 20, 145);
+    ctx.fillText(`Hipotenusa: ${hypotenuse}`, 70, 130 - opposite/2);
+  } else if(type==='basic'){
+    const ops=['+','-','*','/'];
+    const op = ops[Math.floor(Math.random()*ops.length)];
+    problem=`Calcula: ${a} ${op} ${b}`;
+    switch(op){
+      case '+': solution=`${a} + ${b} = ${a+b}`; break;
+      case '-': solution=`${a} - ${b} = ${a-b}`; break;
+      case '*': solution=`${a} × ${b} = ${a*b}`; break;
+      case '/': solution=`${a} ÷ ${b} = ${(a/b).toFixed(2)}`; break;
+    }
+  } else if(type==='combined'){
+    const numOps = Math.floor(Math.random()*3)+2;
+    const ops = ['+','-','*','/','^'];
+    let expr = '';
+    let evalExpr = '';
+    let blocks = [];
+    for(let i=0;i<numOps;i++){
+        let n;
+        let addSqrt = Math.random()<0.3;
+        if(addSqrt){ n = Math.floor(Math.random()*100)+1; } 
+        else { n = Math.floor(Math.random()*max)+1; }
+        let op = i>0 ? ops[Math.floor(Math.random()*ops.length)] : '';
+        if(op==='/' && n===0) n=1;
+        if(op==='^') n = Math.floor(Math.random()*5)+2;
+        if(addSqrt){ expr += op + `√${n}`; evalExpr += op + `Math.sqrt(${n})`; blocks.push(`√${n}`); }
+        else { expr += op + n; evalExpr += op + n; blocks.push(n); }
+        if(Math.random()<0.4){ expr = '('+expr+')'; evalExpr = '('+evalExpr+')'; }
+    }
+    problem = `Resuelve: ${expr}`;
+    try{ solution = `Resultado ≈ ${eval(evalExpr.replace(/\^/g,'**')).toFixed(2)}`; } catch{ solution='Error en el cálculo'; }
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle='#90c7d1';
+    ctx.strokeStyle='#2c3e50';
+    ctx.font='14px Arial';
+    let x=10, y=70;
+    blocks.forEach((b)=>{
+        ctx.fillRect(x, y-20, 40, 40);
+        ctx.strokeRect(x, y-20, 40, 40);
+        ctx.fillStyle='#2c3e50';
+        ctx.fillText(b, x+10, y+5);
+        ctx.fillStyle='#90c7d1';
+        x+=50;
+    });
+    let parens = [...expr.matchAll(/\([^\)]+\)/g)];
+    parens.forEach(p=>{
+        let len = p[0].length;
+        ctx.beginPath();
+        ctx.arc(10+len*25/2, y-10, len*20/2, Math.PI, 0, false);
+        ctx.stroke();
+    });
+  } else if(type==='kinematics'){
+    const v0=Math.floor(Math.random()*20+1);
+    const aVal=Math.floor(Math.random()*5+1);
+    const t=Math.floor(Math.random()*10+1);
+    problem=`Un objeto parte con velocidad inicial ${v0} m/s y aceleración ${aVal} m/s² durante ${t} s. Calcula la velocidad final y la distancia recorrida.`;
+    const vf = v0 + aVal*t;
+    const d = v0*t + 0.5*aVal*t*t;
+    solution=`Velocidad final v = ${vf} m/s, Distancia d = ${d} m`;
+  } else if(type==='energy'){
+    const m=Math.floor(Math.random()*10+1);
+    const h=Math.floor(Math.random()*10+1);
+    const g=10;
+    problem=`Calcula la energía potencial de un objeto de masa ${m} kg a una altura de ${h} m.`;
+    const Ep = m*g*h;
+    solution=`Energía potencial Ep = ${Ep} J`;
+  } else if(type==='circular'){
+    const r=Math.floor(Math.random()*10+1);
+    const w=Math.floor(Math.random()*10+1);
+    problem=`Un objeto gira en un círculo de radio ${r} m con velocidad angular ${w} rad/s. Calcula la velocidad lineal y la aceleración centrípeta.`;
+    const v = w*r;
+    const ac = w*w*r;
+    solution=`Velocidad lineal v = ${v} m/s, Aceleración centrípeta ac = ${ac} m/s²`;
+  } else if(type==='thermo'){
+    const Q=Math.floor(Math.random()*100+10);
+    const m=Math.floor(Math.random()*10+1);
+    const c=Math.floor(Math.random()*5+1);
+    problem=`Calcula el cambio de temperatura de un objeto de masa ${m} kg al recibir ${Q} J de calor, si su capacidad calorífica es ${c} J/(kg·°C).`;
+    const deltaT = Q/(m*c);
+    solution=`ΔT = ${deltaT.toFixed(2)} °C`;
+  } else if(type==='electric'){
+    const V=Math.floor(Math.random()*20+1);
+    const R=Math.floor(Math.random()*10+1);
+    problem=`Calcula la corriente en un circuito con resistencia ${R} Ω y voltaje ${V} V.`;
+    const I = V/R;
+    solution=`Corriente I = ${I.toFixed(2)} A`;
+  } else if(type==='optics'){
+    const f=Math.floor(Math.random()*50+10);
+    const dO=Math.floor(Math.random()*100+10);
+    problem=`Calcula la distancia de la imagen formada por una lente con distancia focal ${f} cm, objeto a ${dO} cm.`;
+    const dI = 1/(1/f - 1/dO);
+    solution=`Distancia imagen d_i ≈ ${dI.toFixed(2)} cm`;
+  }
+
+  problemEl.textContent = problem;
+  solutionEl.style.display='none';
+  currentSolution = solution;
+
+  const entry = document.createElement('div');
+  entry.textContent = problem;
+  historyEl.prepend(entry);
+}
+
+function showSolution(){
+  solutionEl.textContent = currentSolution;
+  solutionEl.style.display='block';
+  points += 10;
+  pointsEl.textContent=`Puntos: ${points}`;
+  if(points >= level*100){
+    level++;
+    levelEl.textContent=`Nivel: ${level}`;
+    alert(`¡Subiste al nivel ${level}!`);
+  }
+}
+
+function saveProgress(){
+  const data={points,level,history:Array.from(historyEl.children).map(c=>c.textContent)};
+  const blob = new Blob([JSON.stringify(data)],{type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download='progreso.json'; a.click(); URL.revokeObjectURL(url);
+}
+
+function loadProgress(){
+  const input=document.createElement('input'); input.type='file'; input.accept='application/json';
+  input.onchange=e=>{
+    const file=e.target.files[0];
+    const reader=new FileReader();
+    reader.onload=event=>{
+      try{
+        const data=JSON.parse(event.target.result);
+        points=data.points||0; level=data.level||1;
+        pointsEl.textContent=`Puntos: ${points}`;
+        levelEl.textContent=`Nivel: ${level}`;
+        historyEl.innerHTML='';
+        data.history.forEach(p=>{
+          const div=document.createElement('div'); div.textContent=p; historyEl.appendChild(div);
+        });
+      }catch(err){ alert("Archivo inválido"); }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+const calculatorPanel=document.getElementById('calculator-panel');
+const generatorPanel=document.getElementById('generator-panel');
+function switchMode(mode){
+  if(mode==='calculator'){ calculatorPanel.style.display='block'; generatorPanel.style.display='none'; }
+  else{ calculatorPanel.style.display='none'; generatorPanel.style.display='block'; }
+}
+
+switchMode('generator');
+</script>
+
+</body>
+</html>
